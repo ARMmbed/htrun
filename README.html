@@ -1,0 +1,357 @@
+<p><div class="toc">
+<ul>
+<li><a href="#mbed-host-tests">mbed-host-tests</a></li>
+<li><a href="#prerequisites">Prerequisites</a></li>
+<li><a href="#rationale">Rationale</a></li>
+<li><a href="#module-responsibilities">Module responsibilities</a></li>
+<li><a href="#module-structure">Module structure</a></li>
+<li><a href="#what-is-host-test">What is host test?</a><ul>
+<li><a href="#interaction-between-test-runner-and-host-test">Interaction between test runner and host test</a></li>
+<li><a href="#host-test-class-structure">Host test class structure</a></li>
+<li><a href="#example-of-cli-version-of-host-test-defaulttestselector-supervisor">Example of CLI version of host test DefaultTestSelector supervisor</a></li>
+<li><a href="#default-command-line-tool">Default command line tool</a></li>
+<li><a href="#user-implementaion">User implementaion</a></li>
+</ul>
+</li>
+<li><a href="#installation-from-python-sources">Installation from Python sources</a></li>
+<li><a href="#installation-from-pypi-python-package-index">Installation from PyPI (Python Package Index)</a></li>
+</ul>
+</div>
+</p>
+
+<h1 id="mbed-host-tests">mbed-host-tests</h1>
+
+<p>mbed-host-tests package is decoupled functionality originally implemented for mbedmicro/mbed workspace_tools (See: <a href="https://github.com/mbedmicro/mbed">https://github.com/mbedmicro/mbed</a>).  <br>
+Original host tests implementation can be found here: <a href="https://github.com/mbedmicro/mbed/tree/master/workspace_tools/host_tests">https://github.com/mbedmicro/mbed/tree/master/workspace_tools/host_tests</a>. </p>
+
+
+
+<h1 id="prerequisites">Prerequisites</h1>
+
+<ul>
+<li>Installed Python 2.7.x programming language: <a href="https://www.python.org/download/releases/2.7">https://www.python.org/download/releases/2.7</a></li>
+<li>Installed pySerial module for Python 2.7: <a href="https://pypi.python.org/pypi/pyserial">https://pypi.python.org/pypi/pyserial</a></li>
+</ul>
+
+
+
+<h1 id="rationale">Rationale</h1>
+
+<p>With announcement of mbed OS existing mbed SDK and existing test framework will no longer be supported in current state. Monolithic model will be replaced with set of tools and supporting ecosystem which will provide generic and comprehensive services to mbed users, both individual and commercial (partners).</p>
+
+
+
+<h1 id="module-responsibilities">Module responsibilities</h1>
+
+<p>Mbed ecosystem tools, implemented by mbed users or third party companies can take advantage of existing supplementary module called mbed-host-tests. This module defines classes of host tests that can be reused with new or user defined tests. Host tests also should be shared between mbed classic and mbed OS ecosystems equally.</p>
+
+
+
+<h1 id="module-structure">Module structure</h1>
+
+
+
+<pre class="prettyprint"><code class=" hljs livecodeserver">mbed_host_tests/
+    host_tests/             - Supervising host test scripts used <span class="hljs-keyword">for</span> instrumentation. 
+    host_tests_plugins/     - Plugins used <span class="hljs-keyword">by</span> host test <span class="hljs-built_in">to</span> flash test runner binary <span class="hljs-operator">and</span> reset device.
+    host_tests_registry/    - Registry, used <span class="hljs-built_in">to</span> store <span class="hljs-string">'host test name'</span> <span class="hljs-built_in">to</span> <span class="hljs-string">'host test class'</span> mapping.
+    host_tests_runner/      - Classes implementing basic host test functionality (like test flow control).</code></pre>
+
+
+
+<h1 id="what-is-host-test">What is host test?</h1>
+
+<p>Test suite support test supervisor concept. This concept is realized by separate Python script called “host test” originally stored in mbedmicro/mbed repository under <code>mbedmicro/mbed/workspace_tools/host_tests/</code> directory. </p>
+
+<p>Host test script is executed in parallel with test runner (binary running on target hardware) to monitor test execution progress or to control test flow (interact with MUT: mbed device under test). Host test responsibility is also to grab test result or deduce test result depending on test runner behaviour. In many cases  </p>
+
+<p>Basic host test only monitors device’s default serial port (serial console or in future console communication channel) for test result prints returned by test runner. Basic test runners supervised by basic host test will print test result in a specific unique format on serial port.</p>
+
+<p>In other cases host tests can for example judge by test runner console output if test passed or failed. It all depends on test itself. In some cases host test can be TCP server echoing packets from test runner and judging packet loss. In other cases it can just check if values returned from accelerometer are actually valid (sane).</p>
+
+
+
+<h2 id="interaction-between-test-runner-and-host-test">Interaction between test runner and host test</h2>
+
+
+
+<pre class="prettyprint"><code class=" hljs r">   &lt;&lt;Target MCU&gt;&gt;                                       &lt;&lt;Host computer&gt;&gt;
++------------------+                               +-------------------------+
+|                  |&lt;--- test runner binary copy --|                         |
+|  [test runner]<span class="hljs-keyword">...</span>|&lt;--- console communication ---&gt;|....[host test runner]   |
+|                  |                               |                         |
++------------------+                               +-------------------------+</code></pre>
+
+
+
+<h2 id="host-test-class-structure">Host test class structure</h2>
+
+
+
+<pre class="prettyprint"><code class=" hljs asciidoc"><span class="hljs-code">+-------------------------+</span>
+<span class="hljs-header">|   DefaultTestSelector   |
++-------------------------+</span>
+<span class="hljs-header">| run()                   |
++-------------------------+</span>
+<span class="hljs-code">           _|_</span>
+<span class="hljs-header">           \_/
++-------------------------+</span>
+<span class="hljs-header">| DefaultTestSelectorBase |
++-------------------------+</span>
+<span class="hljs-header">|                         |
++-------------------------+</span>
+<span class="hljs-code">           _|_</span>
+<span class="hljs-header">           \_/
++-------------------------+</span>
+<span class="hljs-header">|          Test           |
++-------------------------+</span>
+| Mbed                    |
+<span class="hljs-header">| host_tests_plugins      |
++-------------------------+</span>
+| detect<span class="hljs-emphasis">_test_</span>config()    |
+| setup()                 |
+<span class="hljs-header">| run()                   |
++-------------------------+</span>
+<span class="hljs-code">           _|_</span>
+<span class="hljs-header">           \_/
++-------------------------+</span>
+<span class="hljs-header">|     HostTestResults     |
++-------------------------+</span>
+| RESULT<span class="hljs-emphasis">_SUCCESS          |
+| RESULT_</span>FAILURE          |
+| RESULT<span class="hljs-emphasis">_ERROR            |
+| RESULT_</span>IO<span class="hljs-emphasis">_SERIAL        |
+| RESULT_</span>NO<span class="hljs-emphasis">_IMAGE         |
+| RESULT_</span>IOERR<span class="hljs-emphasis">_COPY       |
+| RESULT_</span>PASSIVE          |
+<span class="hljs-header">| RESULT_NOT_DETECTED     |
++-------------------------+</span></code></pre>
+
+<ul>
+<li><code>HostTestResults</code> - defines generic test result enum.</li>
+<li><code>Test</code> - Class encapsulated “Mbed class“` and implements functionalities like: host test detection, host test setup and default run() function.</li>
+<li><code>Mbed</code> - Implements ways of communicating with mbed device. Uses serial port as standard console communication channel and calls flash and reset plugins to copy test runner binary and reset mbed device respectively.</li>
+<li><code>DefaultTestSelectorBase</code> - base class for <code>DefaultTestSelector</code> functionality. Available explicitly in mbed-host-tests module so users can derive from this base class their own <code>DefaultTestSelector</code>s.</li>
+<li><code>DefaultTestSelector</code> - Class configured with external options (e.g. input from command line parameters) responsible for test execution flow: <br>
+** Copy given test runner binary to target MCU (proper plugin is selected based on input options). <br>
+** Reset target MCU (proper plugin is selected based on input options). <br>
+** Execute test runner’s test case parameters auto-detection process (host test, timeout, test name, test description etc. are detected). <br>
+** Execute requested by test runner host test <code>test()</code> procedure. <br>
+** Supervise test runner execution (test case flow) with timeout watchdog. <br>
+** Conclude test case result. Result can be grabbed from test runner console output or determined by host test independently. <br>
+** Send to test suite environment information about test execution finish.</li>
+</ul>
+
+
+
+<h2 id="example-of-cli-version-of-host-test-defaulttestselector-supervisor">Example of CLI version of host test DefaultTestSelector supervisor</h2>
+
+<p>We can use mbed-host-tests in two ways. We can use it in our own Python implementation and create lots of host test variations) or we can use predefined and built for us command line tool called <code>mbedhtrun</code> (<strong>mbed</strong> **h**ost **t**est **run**ner).</p>
+
+
+
+<h2 id="default-command-line-tool">Default command line tool</h2>
+
+<p>After installing mbed-host-tests module you will have access to <code>mbehtrun</code> (mbed host test runner) CLI application. In is implementing below example of user host test runner. This default implementation gives us flexibility. We can now use external tools and call <code>mbehtrun</code> application without providing our own.  <br>
+This CLI application will do heavy lifting for modules like <code>mbed-greentea</code> which will use <code>mbehtrun</code> to drive each host test session with given platform.</p>
+
+<p>Example:</p>
+
+
+
+<pre class="prettyprint"><code class=" hljs lasso">$ mbedhtrun <span class="hljs-attribute">-d</span> F: <span class="hljs-attribute">-f</span> <span class="hljs-string">".\build\st-nucleo-f401re-gcc\test\mbed-test-cpp.bin"</span> <span class="hljs-attribute">-p</span> COM52 <span class="hljs-attribute">-C</span> <span class="hljs-number">4</span> <span class="hljs-attribute">-m</span> NUCLEO_F401RE <span class="hljs-attribute">-c</span> copy
+MBED: Instrumentation: <span class="hljs-string">"COM52"</span> <span class="hljs-literal">and</span> disk: <span class="hljs-string">"F:"</span>
+HOST: Copy image onto target<span class="hljs-attribute">...</span>
+        <span class="hljs-number">1</span> file(s) copied<span class="hljs-built_in">.</span>
+HOST: Initialize serial port<span class="hljs-attribute">...</span>
+HOST: Reset target<span class="hljs-attribute">...</span>
+HOST: Unknown property:  Static<span class="hljs-tag">::init</span>
+HOST: Property <span class="hljs-string">'timeout'</span> <span class="hljs-subst">=</span> <span class="hljs-string">'10'</span>
+HOST: Property <span class="hljs-string">'host_test_name'</span> <span class="hljs-subst">=</span> <span class="hljs-string">'default_auto'</span>
+HOST: Property <span class="hljs-string">'description'</span> <span class="hljs-subst">=</span> <span class="hljs-string">'C++'</span>
+HOST: Property <span class="hljs-string">'test_id'</span> <span class="hljs-subst">=</span> <span class="hljs-string">'MBED_12'</span>
+HOST: Start test<span class="hljs-attribute">...</span>
+Static<span class="hljs-tag">::stack_test</span>
+<span class="hljs-built_in">Stack</span><span class="hljs-tag">::init</span>
+<span class="hljs-built_in">Stack</span><span class="hljs-tag">::hello</span>
+<span class="hljs-built_in">Stack</span><span class="hljs-tag">::destroy</span>
+Static<span class="hljs-tag">::check_init</span>: OK
+Heap<span class="hljs-tag">::init</span>
+Heap<span class="hljs-tag">::hello</span>
+Heap<span class="hljs-tag">::check_init</span>: OK
+Heap<span class="hljs-tag">::destroy</span>
+{{success}}
+{{end}}
+
+{{ioerr_serial}}
+{{end}}</code></pre>
+
+
+
+<h2 id="user-implementaion">User implementaion</h2>
+
+<p>Example of host test script (<code>mbedhtrun.py</code>) used to supervise test runner execution from command line:</p>
+
+
+
+<pre class="prettyprint"><code class="language-python hljs "><span class="hljs-comment">#!/usr/bin/env python</span>
+
+<span class="hljs-keyword">from</span> mbed_host_tests <span class="hljs-keyword">import</span> DefaultTestSelector         <span class="hljs-comment"># Default adapter for DefaultTestSelectorBase</span>
+<span class="hljs-keyword">from</span> mbed_host_tests <span class="hljs-keyword">import</span> init_host_test_cli_params   <span class="hljs-comment"># Provided command line options</span>
+
+<span class="hljs-keyword">if</span> __name__ == <span class="hljs-string">'__main__'</span>:
+    <span class="hljs-comment"># 1. Create DefaultTestSelector object and pass command line parameters</span>
+    <span class="hljs-comment"># 2. Call default test execution function run() to start test instrumentation</span>
+    DefaultTestSelector(init_host_test_cli_params()).run()</code></pre>
+
+<p>Example of console call for above example script (<code>mbedhtrun.py</code>):</p>
+
+
+
+<pre class="prettyprint"><code class=" hljs tex"><span class="hljs-formula">$ mbedhtrun.py -d E: -f "C:<span class="hljs-command">\Work</span><span class="hljs-command">\mbed</span><span class="hljs-command">\build</span><span class="hljs-command">\test</span><span class="hljs-command">\K</span>64F<span class="hljs-command">\ARM</span><span class="hljs-command">\RTOS</span>_7<span class="hljs-command">\timer</span>.bin" -p COM61 -C 4 -m K64F</span></code></pre>
+
+<p>Output (real-time console output from test runner captured by host test supervisor over serial port):</p>
+
+
+
+<pre class="prettyprint"><code class=" hljs livecodeserver">MBED: Instrumentation: <span class="hljs-string">"COM61"</span> <span class="hljs-operator">and</span> disk: <span class="hljs-string">"E:"</span>
+HOST: Copy image onto target...
+HOST: Initialize serial port...
+HOST: Reset target...
+HOST: Property <span class="hljs-string">'timeout'</span> = <span class="hljs-string">'15'</span>
+HOST: Property <span class="hljs-string">'host_test_name'</span> = <span class="hljs-string">'wait_us_auto'</span>
+HOST: Property <span class="hljs-string">'description'</span> = <span class="hljs-string">'Timer'</span>
+HOST: Property <span class="hljs-string">'test_id'</span> = <span class="hljs-string">'RTOS_7'</span>
+HOST: Start test...
+* <span class="hljs-operator">in</span> <span class="hljs-number">1.00</span> <span class="hljs-built_in">sec</span> (<span class="hljs-number">0.00</span>) [OK]
+* <span class="hljs-operator">in</span> <span class="hljs-number">1.00</span> <span class="hljs-built_in">sec</span> (<span class="hljs-number">0.00</span>) [OK]
+* <span class="hljs-operator">in</span> <span class="hljs-number">1.00</span> <span class="hljs-built_in">sec</span> (<span class="hljs-number">0.00</span>) [OK]
+* <span class="hljs-operator">in</span> <span class="hljs-number">1.00</span> <span class="hljs-built_in">sec</span> (<span class="hljs-number">0.00</span>) [OK]
+* <span class="hljs-operator">in</span> <span class="hljs-number">1.00</span> <span class="hljs-built_in">sec</span> (<span class="hljs-number">0.00</span>) [OK]
+* <span class="hljs-operator">in</span> <span class="hljs-number">1.00</span> <span class="hljs-built_in">sec</span> (<span class="hljs-number">0.00</span>) [OK]
+* <span class="hljs-operator">in</span> <span class="hljs-number">1.00</span> <span class="hljs-built_in">sec</span> (<span class="hljs-number">0.00</span>) [OK]
+* <span class="hljs-operator">in</span> <span class="hljs-number">1.00</span> <span class="hljs-built_in">sec</span> (<span class="hljs-number">0.00</span>) [OK]
+* <span class="hljs-operator">in</span> <span class="hljs-number">1.00</span> <span class="hljs-built_in">sec</span> (<span class="hljs-number">0.00</span>) [OK]
+* <span class="hljs-operator">in</span> <span class="hljs-number">1.00</span> <span class="hljs-built_in">sec</span> (<span class="hljs-number">0.00</span>) [OK]
+Consecutive OK timer reads: <span class="hljs-number">10</span>
+Completed <span class="hljs-operator">in</span> <span class="hljs-number">10.00</span> <span class="hljs-built_in">sec</span>
+
+{{success}}
+{{<span class="hljs-function"><span class="hljs-keyword">end</span>}}</span></code></pre>
+
+<p>Note:  <br>
+* MUT (mbed under test) is K64F: <code>-m K64F</code>. <br>
+* Test runner binary is located at: <code>C:\Work\mbed\build\test\K64F\ARM\RTOS_7\timer.bin</code>.  <br>
+* K64F virtual serial port (USB CDC) is mounted at: <code>-p COM61</code>. <br>
+* K64F virtual serial port (USB MSC) is mounted at: <code>-d E:</code>. <br>
+* Test result: SUCCESS - <code>{{success}}}</code>. <br>
+* Test ended after success code was received: <code>{{end}}}</code>. <br>
+* Default command line parameters deployed with <code>mbed_host_tests</code> module:</p>
+
+
+
+<pre class="prettyprint"><code class=" hljs applescript">c:\temp\mbed_host_test_example&gt;mbedhtrun.py <span class="hljs-comment">--help</span>
+Usage: mbedhtrun.py [options]
+
+Options:
+  -h, <span class="hljs-comment">--help            show this help message and exit</span>
+  -m MICRO, <span class="hljs-comment">--micro=MICRO</span>
+                        Target microcontroller <span class="hljs-property">name</span>
+  -p PORT, <span class="hljs-comment">--port=PORT  Serial port of the target</span>
+  -d DISK_PATH, <span class="hljs-comment">--disk=DISK_PATH</span>
+                        Target disk (mount point) path
+  -f IMAGE_PATH, <span class="hljs-comment">--image-path=IMAGE_PATH</span>
+                        Path <span class="hljs-keyword">with</span> target's binary image
+  -c COPY_METHOD, <span class="hljs-comment">--copy=COPY_METHOD</span>
+                        Copy method selector. Define which <span class="hljs-keyword">copy</span> method (<span class="hljs-keyword">from</span>
+                        plugins) should be used
+  -C COPY_METHOD, <span class="hljs-comment">--program_cycle_s=COPY_METHOD</span>
+                        Program cycle sleep. Define how many seconds you want
+                        wait <span class="hljs-keyword">after</span> copying binary <span class="hljs-keyword">onto</span> target
+  -r FORCED_RESET_TYPE, <span class="hljs-comment">--reset=FORCED_RESET_TYPE</span>
+                        Forces different type <span class="hljs-keyword">of</span> reset
+  -R NUMBER, <span class="hljs-comment">--reset-timeout=NUMBER</span>
+                        When forcing a reset using option -r you can <span class="hljs-keyword">set</span> up
+                        <span class="hljs-keyword">after</span> reset idle <span class="hljs-command">delay</span> <span class="hljs-keyword">in</span> seconds</code></pre>
+
+
+
+<h1 id="installation-from-python-sources">Installation from Python sources</h1>
+
+<p>Prerequisites: you need to have Python 2.7.x installed on your system.</p>
+
+<p>To install mbed-host-tests module clone mbed-host-tests repository:</p>
+
+
+
+<pre class="prettyprint"><code class=" hljs lasso">$ git clone <span class="hljs-subst">&lt;</span><span class="hljs-keyword">link</span><span class="hljs-attribute">-to</span><span class="hljs-attribute">-mbed</span><span class="hljs-attribute">-ls</span><span class="hljs-attribute">-repo</span><span class="hljs-subst">&gt;</span></code></pre>
+
+<p>and change directory to mbed-host-tests repository directory:</p>
+
+
+
+<pre class="prettyprint"><code class=" hljs lasso">$ cd mbed<span class="hljs-attribute">-host</span><span class="hljs-attribute">-tests</span></code></pre>
+
+<p>Now you are ready to install mbed-host-tests module. </p>
+
+
+
+<pre class="prettyprint"><code class=" hljs ruby"><span class="hljs-variable">$ </span>python setup.py install</code></pre>
+
+<p>Note: On Linux if you have problem with permissions please try to use <code>sudo</code>:</p>
+
+
+
+<pre class="prettyprint"><code class=" hljs bash">$ <span class="hljs-built_in">sudo</span> python setup.py install</code></pre>
+
+<p>To test if your installation succeeded you can use Python interpreter and import <code>mbed_host_tests</code> to check if module is correctly installed:</p>
+
+
+
+<pre class="prettyprint"><code class=" hljs python">$ python
+Python <span class="hljs-number">2.7</span><span class="hljs-number">.8</span> (default, Jun <span class="hljs-number">30</span> <span class="hljs-number">2014</span>, <span class="hljs-number">16</span>:<span class="hljs-number">03</span>:<span class="hljs-number">49</span>) [MSC v<span class="hljs-number">.1500</span> <span class="hljs-number">32</span> bit (Intel)] on win32
+Type <span class="hljs-string">"help"</span>, <span class="hljs-string">"copyright"</span>, <span class="hljs-string">"credits"</span> <span class="hljs-keyword">or</span> <span class="hljs-string">"license"</span> <span class="hljs-keyword">for</span> more information.
+<span class="hljs-prompt">&gt;&gt;&gt; </span><span class="hljs-keyword">import</span> mbed_host_tests
+<span class="hljs-prompt">&gt;&gt;&gt; </span>dir(mbed_host_tests)
+[<span class="hljs-string">'DefaultAuto'</span>, <span class="hljs-string">'DefaultTestSelector'</span>, <span class="hljs-string">'DefaultTestSelectorBase'</span>, <span class="hljs-string">'DetectPlatformTest'</span>, <span class="hljs-string">'DevNullTest'</span>, 
+<span class="hljs-string">'EchoTest'</span>, <span class="hljs-string">'HOSTREGISTRY'</span>, <span class="hljs-string">'HelloTest'</span>, <span class="hljs-string">'HostRegistry'</span>, <span class="hljs-string">'OptionParser'</span>, <span class="hljs-string">'RTCTest'</span>, <span class="hljs-string">'StdioTest'</span>, 
+<span class="hljs-string">'TCPEchoClientTest'</span>, <span class="hljs-string">'TCPEchoServerTest'</span>, <span class="hljs-string">'UDPEchoClientTest'</span>, <span class="hljs-string">'UDPEchoServerTest'</span>, <span class="hljs-string">'WaitusTest'</span>, 
+<span class="hljs-string">'__builtins__'</span>, <span class="hljs-string">'__doc__'</span>, <span class="hljs-string">'__file__'</span>, <span class="hljs-string">'__name__'</span>, <span class="hljs-string">'__package__'</span>, <span class="hljs-string">'__path__'</span>, <span class="hljs-string">'get_host_test'</span>, 
+<span class="hljs-string">'host_tests'</span>, <span class="hljs-string">'host_tests_plugins'</span>, <span class="hljs-string">'host_tests_registry'</span>, <span class="hljs-string">'host_tests_runner'</span>, <span class="hljs-string">'init_host_test_cli_params'</span>, 
+<span class="hljs-string">'is_host_test'</span>]</code></pre>
+
+<p>You can also check if <code>mbedhtrun</code> is correctly installed in your system:</p>
+
+
+
+<pre class="prettyprint"><code class=" hljs applescript">mbedhtrun <span class="hljs-comment">--help</span>
+Usage: mbedhtrun-<span class="hljs-keyword">script</span>.py [options]
+
+Options:
+  -h, <span class="hljs-comment">--help            show this help message and exit</span>
+  -m MICRO, <span class="hljs-comment">--micro=MICRO</span>
+                        Target microcontroller <span class="hljs-property">name</span>
+  -p PORT, <span class="hljs-comment">--port=PORT  Serial port of the target</span>
+  -d DISK_PATH, <span class="hljs-comment">--disk=DISK_PATH</span>
+                        Target disk (mount point) path
+  -f IMAGE_PATH, <span class="hljs-comment">--image-path=IMAGE_PATH</span>
+                        Path <span class="hljs-keyword">with</span> target's binary image
+  -c COPY_METHOD, <span class="hljs-comment">--copy=COPY_METHOD</span>
+                        Copy method selector. Define which <span class="hljs-keyword">copy</span> method (<span class="hljs-keyword">from</span>
+                        plugins) should be used
+  -C COPY_METHOD, <span class="hljs-comment">--program_cycle_s=COPY_METHOD</span>
+                        Program cycle sleep. Define how many seconds you want
+                        wait <span class="hljs-keyword">after</span> copying binary <span class="hljs-keyword">onto</span> target
+  -r FORCED_RESET_TYPE, <span class="hljs-comment">--reset=FORCED_RESET_TYPE</span>
+                        Forces different type <span class="hljs-keyword">of</span> reset
+  -R NUMBER, <span class="hljs-comment">--reset-timeout=NUMBER</span>
+                        When forcing a reset using option -r you can <span class="hljs-keyword">set</span> up
+                        <span class="hljs-keyword">after</span> reset idle <span class="hljs-command">delay</span> <span class="hljs-keyword">in</span> seconds</code></pre>
+
+
+
+<h1 id="installation-from-pypi-python-package-index">Installation from PyPI (Python Package Index)</h1>
+
+<p>In the near furure mbed-ls module can be redistributed via PyPI. We recommend you use <code>pip</code> application. It is available here: <a href="https://pip.pypa.io/en/latest/installing.html#install-pip">https://pip.pypa.io/en/latest/installing.html#install-pip</a></p>
+
+<p>Note: Python 2.7.9 and later (on the python2 series), and Python 3.4 and later include pip by default, so you may have pip already.</p>
