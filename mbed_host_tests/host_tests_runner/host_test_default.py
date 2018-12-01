@@ -437,7 +437,7 @@ class DefaultTestSelector(DefaultTestSelectorBase):
                         # Dynamic timeout set
                         timeout_duration = int(value) # New timeout
                         self.logger.prn_inf("setting timeout to: %d sec"% int(value))
-                    elif key == '__timeout_adj':
+                    elif key == '__timeout_adjust':
                         # Dynamic timeout adjust
                         timeout_duration = timeout_duration + int(value) # adjust time
                         self.logger.prn_inf("adjusting timeout with %d sec (now %d)" % (int(value), timeout_duration))
