@@ -1,6 +1,6 @@
 """
 mbed SDK
-Copyright (c) 2016-2016 ARM Limited
+Copyright (c) 2016-2016,2018 ARM Limited
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,11 +17,8 @@ limitations under the License.
 Author: Russ Butler <russ.butler@arm.com>
 """
 
-import re
-import pkg_resources
 from .host_test_plugins import HostTestPluginBase
-from os.path import join, basename
-from pyOCD.board import MbedBoard
+from pyocd.core.helpers import ConnectHelper
 
 
 class HostTestPluginResetMethod_pyOCD(HostTestPluginBase):
@@ -65,10 +62,10 @@ class HostTestPluginResetMethod_pyOCD(HostTestPluginBase):
             if kwargs['target_id']:
                 if capability == 'pyocd':
                     target_id = kwargs['target_id']
-                    with MbedBoard.chooseBoard(board_id=target_id) as board:
-                        board.target.reset()
-                        board.target.resume()
-                        board.uninit(resume=False)
+                    with ConnectHelper.session_with_chosen_probe(unique_id=target_id,
+                                resume_on_disconnect=False) as session:
+                        session.target.reset()
+                        session.target.resume()
                         result = True
         return result
 
