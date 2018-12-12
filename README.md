@@ -220,7 +220,7 @@ Options:
 mbed's test suite (codenamed ```Greentea```) supports the *test supervisor* concept. This concept is realized by this module. ```mbed-host-tests``` is a collection of host tests. Host test is script written in Python, which is executed in parallel with the test suite runner (a binary running on the target hardware / device under test) to monitor the test execution's progress or to control the test flow (interaction with the mbed device under test - DUT). The host test is also responsible for grabbing the test result, or deducing it from the test runner's behavior.
 
 Key-value protocol was developed and is used to provide communication layer between DUT (device under test) and host computer. Key-value protocol defined host computer as master and DUT as slave.
-* Slave side APIs and key-value protocol implementation is encapsulated in [greentea-client](https://github.com/ARMmbed/greentea-client) module. ```greentea-client``` is also available as [yotta module](https://yotta.mbed.com/#/module/greentea-client/1.0.0).
+* Slave side APIs and key-value protocol implementation is encapsulated in [greentea-client](https://github.com/ARMmbed/greentea-client) module.
 * Master side APIs and key-value protocol is encapsulated in  ```mbed-host-tests```.
 
 ```mbed-host-tests``` responsibilities are:
