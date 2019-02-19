@@ -1,4 +1,4 @@
-# Development moved: https://github.com/ARMmbed/mbed-os-tools
+# Development moved: https://github.com/ARMmbed/mbed-os-tools/tree/master/packages/mbed-host-tests
 
 The development of Htrun has been moved into the [mbed-os-tools](https://github.com/ARMmbed/mbed-os-tools/) repository. The [mbed-host-tests](https://pypi.org/project/mbed-host-tests/) package is still available on the Python Package Index (PyPI).
 
